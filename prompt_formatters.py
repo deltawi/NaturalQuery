@@ -126,7 +126,7 @@ Adhere to these rules:
 ### Input:
 Generate a SQL query that answers the questioq `{question}`.
 This query will run on a database whose schema is represented in this string:
-{table_str}\n
+{table_str}
 
 ### Response:
 Based on your instructions, here is the SQL query I have generated to answer the question `{question}`:
