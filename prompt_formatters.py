@@ -129,7 +129,7 @@ This query will run on a database whose schema is represented in this string:
 {table_str}
 
 ### Response:
-Based on your instructions, here is the SQL query I have generated to answer the question `{question}`:
+Based on your instructions, here is the SQL query for Postgres I have generated to answer the question `{question}`:
 ```sql
 """.format(question=instruction, table_str = self.table_str)
 

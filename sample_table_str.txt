@@ -1,70 +1,82 @@
 
-CREATE TABLE companies (
-company_id SERIAL PRIMARY KEY,
-company_name VARCHAR(255) -- company_id is the company unique ID
-)
-
-CREATE TABLE stores (
-company_id integer, -- foreign key referencing companies.company_id
-store_id VARCHAR(255) PRIMARY KEY, -- store_id is the store unique ID
-store_name VARCHAR(255), -- name of the store
-address text, -- address of the store
-phone_number VARCHAR(20) -- phone number of the store
-)
-
-CREATE TABLE categories (
-category_id VARCHAR(255) PRIMARY KEY, -- category_id is the category unique ID
-category_name_en VARCHAR(255) -- name of the category in English
+CREATE TABLE suppliers (
+    supplierid SERIAL PRIMARY KEY, -- supplierid is the unique identifier for a supplier
+    suppliername VARCHAR(100), -- supplier name
+    contactname VARCHAR(100), -- contact person's name
+    address VARCHAR(255), -- supplier's address
+    city VARCHAR(50), -- city where the supplier is located
+    country VARCHAR(50), -- country where the supplier is located
+    phone VARCHAR(15), -- supplier's phone number
+    email VARCHAR(100) -- supplier's email address
 )
 
 CREATE TABLE products (
-product_id VARCHAR(255) PRIMARY KEY, -- product_id is the product unique ID
-article_id VARCHAR(255), -- article number of the product
-product_name_en VARCHAR(255), -- name of the product in English
-uom VARCHAR(50), -- unit of measurement for the product
-buom VARCHAR(50), -- bought quantity of the product
-category_id VARCHAR(255), -- foreign key referencing categories.category_id
-brand VARCHAR(255), -- brand of the product
-gtin VARCHAR(255), -- global trade item number of the product
-varient_en VARCHAR(255) -- variant of the product in English
+    categoryid integer, -- categoryid is the unique identifier for a product category
+    unitprice numeric, -- unit price of the product
+    stockquantity integer DEFAULT 0, -- initial stock quantity of the product
+    supplierid integer, -- supplier ID associated with the product
+    productid SERIAL PRIMARY KEY, -- unique identifier for each product
+    productname VARCHAR(100), -- product name
+    description text -- product description
 )
 
-CREATE TABLE inventory (
-inventory_id SERIAL PRIMARY KEY, -- inventory_id is the inventory unique ID
-current_stock integer, -- current stock of the product
-last_updated TIMESTAMP DEFAULT (now() AT TIME ZONE 'UTC'::text), -- last updated date and time of the inventory
-store_id VARCHAR(255), -- foreign key referencing stores.store_id
-product_id VARCHAR(255), -- foreign key referencing products.product_id
+CREATE TABLE categories (
+    categoryid SERIAL PRIMARY KEY, -- categoryid is the unique identifier for a category
+    categoryname VARCHAR(50), -- category name
+    description text -- category description
 )
 
-CREATE TABLE restocks (
-restock_id SERIAL PRIMARY KEY, -- restock_id is the restock unique ID
-inventory_id integer, -- foreign key referencing inventory.inventory_id
-restocked_quantity integer, -- quantity of the product restocked
-restock_date TIMESTORM DEFAULT (now() AT TIME ZONE 'UTC'::text), -- date and time of the restock
+CREATE TABLE customers (
+    customerid SERIAL PRIMARY KEY, -- customer ID is the unique identifier for a customer
+    registrationdate timestamp with time zone DEFAULT CURRENT_TIMESTAMP, -- registration date of the customer
+    lastname VARCHAR(50), -- customer's last name
+    email VARCHAR(100), -- customer's email address
+    phone VARCHAR(15), -- customer's phone number
+    address VARCHAR(255), -- customer's address
+    city VARCHAR(50), -- city where the customer is located
+    country VARCHAR(50), -- country where the customer is located
+    firstname VARCHAR(50) -- customer's first name
 )
 
-CREATE TABLE transactions (
-transaction_id SERIAL PRIMARY KEY, -- transaction_id is the transaction unique ID
-inventory_id integer, -- foreign key referencing inventory.inventory_id
-date TIMESTAMP DEFAULT (now() AT TIME ZONE 'UTC'::text), -- date of the transaction
-quantity_sold integer, -- quantity of the product sold
-price double precision, -- price of the product sold
-discount double precision, -- discount percentage of the product sold
-tax double precision, -- tax percentage of the product sold
+CREATE TABLE orders (
+    orderid SERIAL PRIMARY KEY, -- order ID is the unique identifier for an order
+    customerid integer, -- customer ID associated with the order
+    orderdate timestamp with time zone DEFAULT CURRENT_TIMESTAMP, -- order date and time
+    totalamount numeric, -- total amount of the order
+    shippingaddress VARCHAR(255), -- shipping address of the order
+    orderstatus VARCHAR(50) DEFAULT 'Processing'::character varying -- order status (e.g. "Processing", "Shipped", "Delivered", etc.)
 )
 
-CREATE TABLE productdemandforecast (
-forecast_id SERIAL PRIMARY KEY, -- forecast_id is the forecast unique ID
-forecast_date date, -- date of the forecast
-forecasted_demand integer, -- forecasted demand of the product
-product_id VARCHAR(255), -- foreign key referencing products.product_id
+CREATE TABLE orderdetails (
+    orderdetailid SERIAL PRIMARY KEY, -- unique identifier for each order detail
+    orderid integer, -- order ID associated with the order detail
+    productid integer, -- product ID associated with the order detail
+    quantity integer, -- quantity of the product in the order
+    unitprice numeric, -- unit price of the product in the order
 )
 
--- stores.company_id can be joined with companies.company_id
--- products.category_id can be joined with categories.category_id
--- inventory.store_id can be joined with stores.store_id
--- inventory.product_id can be joined with products.product_id
--- restocks.inventory_id can be joined with inventory.inventory_id
--- transactions.inventory_id can be joined with inventory.inventory_id
--- productdemandforecast.product_id can be joined with products.product_id
+CREATE TABLE payments (
+    paymentid SERIAL PRIMARY KEY, -- unique identifier for each payment
+    orderid integer, -- order ID associated with the payment
+    paymentdate timestamp with time zone DEFAULT CURRENT_TIMESTAMP, -- payment date and time
+    amount numeric, -- amount of the payment
+    paymentmethod VARCHAR(50) -- payment method (e.g. "Credit Card", "PayPal", etc.)
+)
+
+CREATE TABLE customerfeedback (
+    feedbackid SERIAL PRIMARY KEY, -- unique identifier for each piece of feedback
+    customerid integer, -- customer ID associated with the feedback
+    productid integer, -- product ID associated with the feedback
+    rating integer, -- rating of the product (e.g. 1-5)
+    feedbackdate timestamp with time zone DEFAULT CURRENT_TIMESTAMP, -- date and time of the feedback
+    comment text -- customer's feedback comment
+)
+
+-- products.categoryid can be joined with categories.categoryid
+-- products.supplierid can be joined with suppliers.supplierid
+-- orders.customerid can be joined with customers.customerid
+-- orderdetails.orderid can be joined with orders.orderid
+-- orderdetails.productid can be joined with products.productid
+-- payments.orderid can be joined with orders.orderid
+-- customerfeedback.customerid can be joined with customers.customerid
+-- customerfeedback.productid can be joined with products.productid

@@ -1,7 +1,6 @@
 import torch
 import re
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from manifest import Manifest
 import pandas as pd
 
 HG_CHAT_LLM_MODEL_PATH = "meta-llama/Llama-2-7b-chat-hf"
@@ -61,18 +60,20 @@ def prompt_llm_online(prompt: str, max_length: int=2000):
     response = manifest_client.run(prompt, max_tokens=max_length)
     return response
 
-def add_comment_to_sql(table_str: str):
+def add_comment_to_sql(table_str: str, debug=False):
     """Add SQL comments to SQL DDL using LLM"""
     # Update the prompt with the specific format including INST tags, BOS and EOS tokens
     system_prompt = f'You are an assistant to a SQL developer. He gives a SQL database definition and you give him back the same SQL with comments that explain each column. For example : "company_id SERIAL PRIMARY KEY," becomes "company_id SERIAL PRIMARY KEY, -- company_id is the company unique ID". \n- It is important to keep all existing comments in the given SQL.\n- Do not remove something from the SQL, just add to it.\n- Add comments to all columns of each table.\n- If a column name is an abreviation try to give a description of it.'
     user_message = f"Below is an SQL table definition: \n```sql\n{table_str}\n```"
     formatted_prompt = f"""
-    <s>[INST] <<SYS>>
-    { system_prompt }
-    <</SYS>>
+<s>[INST] <<SYS>>
+{ system_prompt }
+<</SYS>>
 
-    { user_message } [/INST]
-    """
+{ user_message } [/INST]
+"""
+    if debug:
+        print(formatted_prompt)
     response = prompt_llm_offline(prompt=formatted_prompt)
     return extract_sql_code(response.split("[/INST]")[-1])
 
