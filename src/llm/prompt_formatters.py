@@ -1,38 +1,4 @@
-from pydantic import BaseModel
-from typing import Optional, List
-
-class TableColumn(BaseModel):
-    """Table column."""
-
-    name: str
-    dtype: str
-    max_character_length: Optional[int] = None
-    default_value: Optional[str] = None
-    is_nullable: Optional[bool] = None
-    is_primary: Optional[bool] = None
-    is_foreign: Optional[bool] = None
-    foreign_table: Optional[str] = None
-    foreign_column: Optional[str] = None
-
-class ForeignKey(BaseModel):
-    """Foreign key."""
-
-    # Referenced column
-    column: TableColumn
-    # References table name
-    references_name: str
-    # References column
-    references_column: TableColumn
-
-
-class Table(BaseModel):
-    """Table."""
-
-    name: str
-    columns: List[TableColumn]
-    pks: Optional[list[TableColumn]] = None
-    # FK from this table to another column in another table
-    fks: Optional[list[ForeignKey]] = None
+from llm.schemas import *
 
 class SqlCoderFormatter:
 
@@ -40,7 +6,8 @@ class SqlCoderFormatter:
 
     def __init__(self, tables: list[Table]) -> None:
         self.tables = tables
-        self.table_str = self.format_tables(tables)
+        self.raw_table_str = self.format_tables(tables)
+        self.enriched_table_str = None
     
     def map_data_type(self, data_type, character_maximum_length, default):
         """Map general data types to SQL data types."""
@@ -107,16 +74,22 @@ class SqlCoderFormatter:
         tables_fmt.append("\n".join(fk for fk in list_fks))
         return self.table_sep.join(item for item in tables_fmt)
 
+    def enrich_table_str(self):
+        """Use LLM to enrich the SQL DDL with comments"""
+
+        self.enriched_table_str = add_sql_comment
 
     def format_prompt(
         self,
         instruction: str,
+        model_prompt: str = "Llama2",
         database: str = 'SQLite'
     ) -> str:
         """Get prompt format."""
         sql_prefix = "SELECT"
-         
-        prompt = """### Instructions:
+
+        if model_prompt == "Llam2":
+            prompt = """### Instructions:
 Your task is convert a question into a SQL query, given a Postgres database schema.
 Adhere to these rules:
 - **Deliberately go through the question and database schema word by word** to appropriately answer the question
@@ -131,7 +104,11 @@ This query will run on a database whose schema is represented in this string:
 ### Response:
 Based on your instructions, here is the SQL query for Postgres I have generated to answer the question `{question}`:
 ```sql
-""".format(question=instruction, table_str = self.table_str)
+""".format(question=instruction, table_str = self.enriched_table_str)
+        elif model_prompt == "Mixtral":
+            prompt = f"Depending on the following SQL DDL answer the question in SQL for {database}: {instruction}\n {self.enriched_table_str}"
+        else:
+            raise KeyError(f"{model_prompt} is not supported. Use Llama2 or Mixtral.")
 
         return prompt
 

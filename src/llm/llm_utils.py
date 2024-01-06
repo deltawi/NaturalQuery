@@ -2,6 +2,8 @@ import torch
 import re
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import pandas as pd
+import requests
+import json
 
 HG_CHAT_LLM_MODEL_PATH = "meta-llama/Llama-2-7b-chat-hf"
 HG_SQL_LLM_MODEL_PATH = "defog/sqlcoder-7b"
@@ -28,15 +30,25 @@ def find_device() -> str:
 
     return device
 
-
 def extract_sql_code(text):
     # Regular expression pattern to match text between ```sql and ```
-    pattern = r'```sql(.*?)```'
+    sql_pattern = r'```sql(.*?)```'
     
     # Using re.DOTALL to make '.' match any character including newline
-    matches = re.findall(pattern, text, re.DOTALL)
+    sql_matches = re.findall(sql_pattern, text, re.DOTALL)
 
-    return matches[0]
+    # Check if SQL matches are found
+    if sql_matches:
+        return sql_matches[0]
+    else:
+        # If no SQL matches, look for VB.NET code blocks
+        vbnet_pattern = r'```vbnet(.*?)```'
+        vbnet_matches = re.findall(vbnet_pattern, text, re.DOTALL)
+        if vbnet_matches:
+            return vbnet_matches[0]
+        else:
+            return None
+
 
 def prompt_llm_offline(prompt: str, max_length: int=2000, model_name: str=HG_CHAT_LLM_MODEL_PATH) -> str:
     print("Loading model...")
@@ -55,12 +67,27 @@ def prompt_llm_offline(prompt: str, max_length: int=2000, model_name: str=HG_CHA
     response = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
     return response
 
-def prompt_llm_online(prompt: str, max_length: int=2000):
-    manifest_client = Manifest(client_name="huggingface", client_connection=MANIFEST_CLIENT_URL)
-    response = manifest_client.run(prompt, max_tokens=max_length)
-    return response
+def prompt_llm_online(user_prompt, system_prompt="You are a helpful coding AI assistant."):
+    url = "http://localhost:1234/v1/chat/completions"
 
-def add_comment_to_sql(table_str: str, debug=False):
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        "temperature": 0.7,
+        "max_tokens": -1,
+        "stream": False
+    }
+
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    return response.json()['choices'][0]['message']['content']
+
+def add_comment_to_sql_llama(table_str: str, debug=False):
     """Add SQL comments to SQL DDL using LLM"""
     # Update the prompt with the specific format including INST tags, BOS and EOS tokens
     system_prompt = f'You are an assistant to a SQL developer. He gives a SQL database definition and you give him back the same SQL with comments that explain each column. For example : "company_id SERIAL PRIMARY KEY," becomes "company_id SERIAL PRIMARY KEY, -- company_id is the company unique ID". \n- It is important to keep all existing comments in the given SQL.\n- Do not remove something from the SQL, just add to it.\n- Add comments to all columns of each table.\n- If a column name is an abreviation try to give a description of it.'
@@ -76,6 +103,15 @@ def add_comment_to_sql(table_str: str, debug=False):
         print(formatted_prompt)
     response = prompt_llm_offline(prompt=formatted_prompt)
     return extract_sql_code(response.split("[/INST]")[-1])
+
+def add_comment_to_sql_mixtral(table_str: str, debug=False):
+
+    system_prompt = f"You are a helpful coding AI assitant."
+    user_prompt = f"Enhance the following SQL DDL with comments:\n{table_str}"
+
+    response = prompt_llm_online(user_prompt=user_prompt, system_prompt=system_prompt)
+    table_str = extract_sql_code(response)
+    return table_str
 
 def interpret_sql_results(table_str: str, df: pd.DataFrame) -> str:
     system_prompt = f'You are an assistant to a SQL developer, you will help him interpret results of query execution. He gives a SQL database definition, SQL query he ran and the result it returns.\n- You go through the database definition for context.\n- You go through the SQL query and the question to prepare the response.\n- You use the response to provide a short sentence interpreting the results.'

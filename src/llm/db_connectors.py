@@ -5,7 +5,7 @@ from typing import Any, Generator, List
 import pandas as pd
 import sqlalchemy
 
-from prompt_formatters import TableColumn, Table
+from .prompt_formatters import TableColumn, Table
 
 
 @dataclass
@@ -57,8 +57,14 @@ class PostgresConnector:
 
     def run_sql_as_df(self, sql: str) -> pd.DataFrame:
         """Run SQL statement."""
-        with self.connect() as conn:
-            return pd.read_sql(sql, conn)
+        import sqlalchemy
+
+        try:
+            with self.connect() as conn:
+                return pd.read_sql_query(sql, conn)
+        except (sqlalchemy.exc.ProgrammingError, sqlalchemy.exc.OperationalError) as e:
+            # Extracting just the error message
+            return 'Error occured while executing a query {}'.format(e.args)
 
     def get_tables(self) -> List[str]:
         """Get all tables in the database."""
