@@ -3,3 +3,4 @@
 .vscode
 service_account.json
 __pycache__/
+cache_data/
