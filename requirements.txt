@@ -6,5 +6,6 @@ jsonlines>=3.1.0
 sqlglot==11.5.5
 psycopg2-binary==2.9.9
 pydantic==2.5.3
+pyodbc==5.0.1
 gradio
 typing-extensions
