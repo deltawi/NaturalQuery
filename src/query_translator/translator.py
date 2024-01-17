@@ -6,7 +6,11 @@ from query_translator.language_translator import LanguageTranslator
 import hashlib
 from connectors.base_connector import DatabaseConnector
 
-SUPPORTED_LANGUAGES = ['En', 'Ar', 'Fr']
+SUPPORTED_LANGUAGES = {
+    'En': 'English',
+    'Fr': 'French',
+    'Ar': 'Arabic'
+}
 
 class QueryTranslator:
     def __init__(self, llm_api_key: str, 
@@ -14,9 +18,9 @@ class QueryTranslator:
                  db_connector: DatabaseConnector,
                  llm_offline: bool = True,
                  language: str="En"):
-        if language not in SUPPORTED_LANGUAGES:
+        if language not in SUPPORTED_LANGUAGES.keys():
             raise ValueError(f"Unsupported language. Supported languages are: {SUPPORTED_LANGUAGES}")
-        self.language = language
+        self.language = SUPPORTED_LANGUAGES[language]
         self.language_translator = LanguageTranslator(llm_api_key, llm_endpoint_url)
         self.llm_interface = LLMInterface(llm_api_key, llm_endpoint_url, llm_offline)
         self.cacher = DDLCache()
@@ -82,15 +86,18 @@ class QueryTranslator:
     def interpret_query_results(self, query: str, query_results, question: str):
         # Assuming query_results is a string or a format that LLM can interpret
         interpretation_prompt = f"Answer the following question based on this query {query} and the results of the execution of the query: {query_results}\n{question}.\nDon't give explanations, just answer the question."
+        system_prompt="You are a helpful assistant"
+        if self.language != 'English':
+            system_prompt+=f" who talks {self.language}.\n- Reply in {self.language} language.\n- Don't use English in your response."
         interpretation = self.llm_interface.query_llm(
             prompt=interpretation_prompt,
-            system_prompt="You are a helpful assistant")
+            system_prompt=system_prompt)
         return interpretation
     
     def answer(self, question: str) -> str:
         # Translate the question to English if necessary
         original_language = self.language
-        if original_language != 'En':
+        if original_language != 'English':
             question = self.language_translator.translate_to_english(question, original_language)
 
         # Translate the question to sql statement
@@ -111,8 +118,8 @@ class QueryTranslator:
             query=sql_query, query_results=exec_results, question=question)
         
         # Translate the response back to the original language if necessary
-        if original_language != 'En':
-            response = self.language_translator.translate_from_english(response, original_language)
+        #if original_language != 'En':
+        #    response = self.language_translator.translate_from_english(response, original_language)
 
         return response
         
