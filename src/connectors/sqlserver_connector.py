@@ -1,5 +1,5 @@
 
-from base_connector import DatabaseConnector
+from .base_connector import DatabaseConnector
 from models.schemas import Table, TableColumn
 from models.credentials import SQLServerCredentials
 
@@ -19,6 +19,7 @@ class SqlServerConnector(DatabaseConnector):
         )
         self.connection = pyodbc.connect(conn_str)
 
+    @DatabaseConnector.with_connection
     def execute_query(self, query):
         cursor = self.connection.cursor()
         cursor.execute(query)
@@ -28,17 +29,20 @@ class SqlServerConnector(DatabaseConnector):
             self.connection.commit()
             return cursor.rowcount
 
+    @DatabaseConnector.with_connection
     def execute_select_query(self, query):
         with self.connection.cursor() as cursor:
             cursor.execute(query)
             return cursor.fetchall()
     
+    @DatabaseConnector.with_connection
     def get_tables(self):
         query = "SELECT table_name FROM information_schema.tables WHERE table_type = 'BASE TABLE'"
         with self.connection.cursor() as cursor:
             cursor.execute(query)
             return [row[0] for row in cursor.fetchall()]
     
+    @DatabaseConnector.with_connection
     def get_schema(self, table):
         cursor = self.connection.cursor()
 

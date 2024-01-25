@@ -1,16 +1,33 @@
 from abc import ABC, abstractmethod
 from typing import List
 from models.schemas import Table
+from functools import wraps
+
+
 
 class DatabaseConnector(ABC):
     def __init__(self, credentials):
         self.credentials = credentials
         self.connection = None
         self.db_type = None
-
+    
     @abstractmethod
     def connect(self):
         pass
+
+    def close(self):
+        if self.connection:
+            self.connection.close()
+
+    def with_connection(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            self.connect()
+            try:
+                return func(self, *args, **kwargs)
+            finally:
+                self.close()
+        return wrapper
 
     @abstractmethod
     def execute_query(self, query):
@@ -27,19 +44,19 @@ class DatabaseConnector(ABC):
     @abstractmethod
     def get_tables(self):
         pass
-    
+
+    @with_connection
     def query_to_dataframe(self, query):
         import pandas as pd
+        import warnings
+        # Ignore the specific UserWarning related to pandas and non-SQLAlchemy connections
+        warnings.filterwarnings("ignore", message="pandas only supports SQLAlchemy connectable.*")
         return pd.read_sql(query, self.connection)
 
     def get_all_schemas_ddl(self):
         tables = self.get_tables()
         all_tables = [self.get_schema(table) for table in tables]
         return self.format_tables(all_tables)
-    
-    def close_connection(self):
-        if self.connection:
-            self.connection.close()
     
     def map_data_type(self, data_type, character_maximum_length, default):
         """Map general data types to SQL data types."""

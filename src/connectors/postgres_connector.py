@@ -2,7 +2,7 @@ from .base_connector import DatabaseConnector
 from models.schemas import Table, TableColumn
 from models.credentials import PostgresCredentials
 
-class PostgreSQLConnector(DatabaseConnector):
+class PostgresSQLConnector(DatabaseConnector):
     def __init__(self, credentials: PostgresCredentials):
         super().__init__(credentials)
         self.db_type = 'postgres'
@@ -11,6 +11,7 @@ class PostgreSQLConnector(DatabaseConnector):
         import psycopg2
         self.connection = psycopg2.connect(**self.credentials)
 
+    @DatabaseConnector.with_connection
     def execute_query(self, query):
         with self.connection.cursor() as cursor:
             cursor.execute(query)
@@ -19,18 +20,21 @@ class PostgreSQLConnector(DatabaseConnector):
             else:
                 self.connection.commit()
                 return cursor.rowcount
-
+            
+    @DatabaseConnector.with_connection
     def execute_select_query(self, query):
         with self.connection.cursor() as cursor:
             cursor.execute(query)
             return cursor.fetchall()
     
+    @DatabaseConnector.with_connection
     def get_tables(self):
         query = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
         with self.connection.cursor() as cursor:
             cursor.execute(query)
             return [row[0] for row in cursor.fetchall()]
     
+    @DatabaseConnector.with_connection
     def get_schema(self, table):
         column_query = f"""
             SELECT column_name, data_type, character_maximum_length, column_default, is_nullable

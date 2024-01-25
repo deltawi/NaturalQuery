@@ -1,4 +1,4 @@
-from base_connector import DatabaseConnector
+from .base_connector import DatabaseConnector
 from models.schemas import Table, TableColumn
 from models.credentials import SQLiteCredentials
 
@@ -11,6 +11,7 @@ class SQLiteConnector(DatabaseConnector):
         import sqlite3
         self.connection = sqlite3.connect(self.credentials['database'])
 
+    @DatabaseConnector.with_connection
     def execute_query(self, query):
         cursor = self.connection.cursor()
         cursor.execute(query)
@@ -20,17 +21,20 @@ class SQLiteConnector(DatabaseConnector):
             self.connection.commit()
             return cursor.rowcount
 
+    @DatabaseConnector.with_connection
     def execute_select_query(self, query):
         cursor = self.connection.cursor()
         cursor.execute(query)
         return cursor.fetchall()
     
+    @DatabaseConnector.with_connection
     def get_tables(self):
         query = "SELECT name FROM sqlite_master WHERE type='table'"
         cursor = self.connection.cursor()
         cursor.execute(query)
         return [row[0] for row in cursor.fetchall()]
     
+    @DatabaseConnector.with_connection
     def get_schema(self, table):
         cursor = self.connection.cursor()
 
