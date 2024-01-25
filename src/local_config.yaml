@@ -1,0 +1,16 @@
+llm:
+  provider: custom
+  api_key: somekey
+  url: http://localhost:1234/v1/chat/completions
+  model_kwargs:
+    temperature: 0.7
+    stream: False
+database:
+  provider: postgres
+  dbname: postgres
+  host: localhost
+  port: 5432
+  user: postgres
+  password: mysecretpassword
+  # user_env: USR_ENV_VAR
+  # password_env: PWD_ENV_VAR
