@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='natural-query',
-    version='0.0.q',
+    version='0.0.1',
     author='Mehdi Tantaoui',
     author_email='tantaoui.mehdi@gmail.com',
     description='A tool to translate natural language queries to SQL using LLMs.',
