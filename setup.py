@@ -6,7 +6,7 @@ setup(
     author='Mehdi Tantaoui',
     author_email='tantaoui.mehdi@gmail.com',
     description='A tool to translate natural language queries to SQL using LLMs.',
-    long_description=open('../README.md').read(),
+    long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     url='https://github.com/deltawi/NaturalQuery',
     packages=find_packages(),
