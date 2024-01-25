@@ -7,5 +7,8 @@ sqlglot==11.5.5
 psycopg2-binary==2.9.9
 pydantic==2.5.3
 pyodbc==5.0.1
+openai==1.9.0
+cohere==4.44
 gradio
 typing-extensions
+pyyaml
