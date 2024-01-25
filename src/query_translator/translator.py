@@ -1,10 +1,10 @@
 # translator.py
 
 from cache.ddl_cache import DDLCache
-from query_translator.llm_interface import LLMInterface, MixtralInterface
+from query_translator.llm_interface import LLMClient
 from query_translator.language_translator import LanguageTranslator
 import hashlib
-from connectors.base_connector import DatabaseConnector
+from connectors import ConnectorFactory
 
 SUPPORTED_LANGUAGES = {
     'En': 'English',
@@ -13,18 +13,27 @@ SUPPORTED_LANGUAGES = {
 }
 
 class QueryTranslator:
-    def __init__(self, llm_api_key: str, 
-                 llm_endpoint_url: str, 
-                 db_connector: DatabaseConnector,
-                 llm_offline: bool = True,
-                 language: str="En"):
+    def __init__(self, config_path: str, 
+                 language: str = "En"):
+        import yaml
+        # Validate the language
         if language not in SUPPORTED_LANGUAGES.keys():
             raise ValueError(f"Unsupported language. Supported languages are: {SUPPORTED_LANGUAGES}")
         self.language = SUPPORTED_LANGUAGES[language]
-        self.language_translator = LanguageTranslator(llm_api_key, llm_endpoint_url)
-        self.llm_interface = LLMInterface(llm_api_key, llm_endpoint_url, llm_offline)
+        # Initialize LLMClient with the configuration file path
+        self.llm_interface = LLMClient(config_path)
+        self.language_translator = LanguageTranslator(self.llm_interface)
+        # Initialize the database connector
+        ## Load YAML configuration file
+        with open(config_path, 'r') as file:
+            config = yaml.safe_load(file)
+        ## Extract database configuration
+        db_config = config['database']
+        ## Convert database configuration for ConnectorFactory
+        db_type = db_config.pop('provider')  # Removes and returns the 'provider'
+        self.db_connector = ConnectorFactory.get_connector(db_type, db_config)
+        ## Cache object for the database ddl
         self.cacher = DDLCache()
-        self.db_connector = db_connector
 
     def __hash_text(self, text: str):
         """ Hash a given text using SHA256 and return the hexadecimal hash. """
@@ -50,7 +59,7 @@ class QueryTranslator:
             else:
                 return None
     
-    def enrich_ddl_with_comments(self, database_ddl: str, force=False) -> str:
+    def enrich_ddl_with_comments(self, database_ddl: str, force=False, verbose=False) -> str:
         # Get unique hash key
         hash_key = self.__hash_text(database_ddl)
         # If it's foreced then we delete the cach if exists
@@ -59,28 +68,37 @@ class QueryTranslator:
         # We check if it's cached already
         enriched_ddl = self.cacher.get_cached_ddl(hash_key)
         if enriched_ddl is not None:
-            print("Using cached ddl...")
+            if verbose:
+                print("Using cached ddl...")
             return enriched_ddl
         # If not cached we create a new cache
         prompt = f"Enhance the following SQL DDL with comments:\n{database_ddl}"
         system_prompt="You are a helpful coding assistant. Add comments to all columns to describe them, do it for all tables provided."
-        enriched_ddl = self.llm_interface.query_llm(prompt, system_prompt=system_prompt)
+        enriched_ddl = self.llm_interface.ask_question(
+            [{"role": "system", "content": system_prompt}, 
+              {"role": "user", "content": prompt}])
         # We cache the ddl to avoid calling llm twice
         self.cacher.cache_ddl(hash_key, enriched_ddl)
         return enriched_ddl
     
     def correct_sql_query(self, error: str):
-        response = self.llm_interface.query_llm(
-        system_prompt="You are a helpful SQL developer.",
+        system_prompt="You are a helpful SQL developer.\n- Look at the error and the DDL to find a fix.\n- Make sure all join keys are consistant with the database schema or DDL."
         prompt=f"Fix the SQL query based on the error \n {error}.\nSQL DDL is the following:\n {self.enrich_ddl_with_comments(self.db_connector.get_all_schemas_ddl())}"
+        response = self.llm_interface.ask_question(
+            [{"role": "system", "content": system_prompt}, 
+              {"role": "user", "content": prompt}]
         )
         return self.__extract_sql_code(response)
     
     def translate_question_to_sql(self, question: str):
         database_ddl = self.enrich_ddl_with_comments(self.db_connector.get_all_schemas_ddl())
         database_type = self.db_connector.db_type
+        system_prompt="You are a helpful SQL develper.\n-Reply with SQL code snippet.\n-If the question provided cannot be answered in the database return ```sql\n SELECT 'Answer is not in the database' AS Response;```"
         prompt = f"Depending on the following SQL DDL answer the question in SQL for {database_type}: {question}\n {database_ddl}"
-        sql_query = self.llm_interface.query_llm(prompt, system_prompt="You are a helpful SQL develper.\n-Reply with SQL code snippet.\n-If the question provided cannot be answered in the database return ```sql\n SELECT 'Answer is not in the database' AS Response;```")
+        sql_query = self.llm_interface.ask_question(
+            [{"role": "system", "content": system_prompt}, 
+              {"role": "user", "content": prompt}]
+            )
         return self.__extract_sql_code(sql_query)
 
     def interpret_query_results(self, query: str, query_results, question: str):
@@ -89,12 +107,12 @@ class QueryTranslator:
         system_prompt="You are a helpful assistant"
         if self.language != 'English':
             system_prompt+=f" who talks {self.language}.\n- Reply in {self.language} language.\n- Don't use English in your response."
-        interpretation = self.llm_interface.query_llm(
-            prompt=interpretation_prompt,
-            system_prompt=system_prompt)
+        interpretation = self.llm_interface.ask_question(
+            [{"role": "system", "content": system_prompt}, 
+              {"role": "user", "content": interpretation_prompt}])
         return interpretation
     
-    def answer(self, question: str) -> str:
+    def answer(self, question: str, verbose=False) -> str:
         # Translate the question to English if necessary
         original_language = self.language
         if original_language != 'English':
@@ -107,7 +125,8 @@ class QueryTranslator:
         try:
             exec_results = self.db_connector.query_to_dataframe(sql_query)
         except DatabaseError as exc:
-            print("Trying to fix the query...")
+            if verbose:
+                print("Trying to fix the query...")
             sql_query = self.correct_sql_query(exc)
             try:
                 exec_results = self.db_connector.query_to_dataframe(sql_query)
@@ -122,13 +141,3 @@ class QueryTranslator:
         #    response = self.language_translator.translate_from_english(response, original_language)
 
         return response
-        
-class MixtralQueryTranslator(QueryTranslator):
-    def __init__(self, llm_api_key: str, llm_endpoint_url: str, db_connector: DatabaseConnector, llm_offline: bool = True, language: str="En"):
-        super().__init__(
-            llm_api_key=llm_api_key,
-            llm_endpoint_url=llm_endpoint_url,
-            db_connector=db_connector,
-            llm_offline=llm_offline,
-            language=language)
-        self.llm_interface = MixtralInterface(llm_api_key, llm_endpoint_url, offline=llm_offline)
