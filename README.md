@@ -1,7 +1,15 @@
-# Query Translator
+# Natural query
 
-Query Translator is a tool that leverages you favorite large language models (LLMs) to translate natural language queries into SQL. It further augments the answers using the same LLM. This tool is highly beneficial for those who need to interact with databases in natural language.
+Natural query is a tool that leverages you favorite large language models (LLMs) to translate natural language queries into SQL. It further augments the answers using the same LLM. This tool is highly beneficial for those who need to interact with databases in natural language.
 
+## Get started
+
+Install the library:
+```bash
+git clone https://github.com/deltawi/NaturalQuery.git
+cd NaturalQuery
+pip install -e .
+```
 ## Example
 
 ```python
@@ -77,7 +85,7 @@ llm:
 from query_translator.translator import QueryTranslator
 
 # Initialize the translator with the configuration file
-query_translator = QueryTranslator(config_path="./local_config.yaml")
+query_translator = QueryTranslator(config_path="config.yaml")
 
 # Translate and get an answer to a natural language query
 answer = query_translator.answer("Who are the suppliers with products that have the most reviews from costumers ?")
@@ -85,4 +93,18 @@ print(answer)
 ```
 ```text
 The supplier with products that has the most reviews from customers is "Global Supplies" with a review count of 1.
+```
+
+## Using French language
+
+```python
+from query_translator.translator import QueryTranslator
+
+# Initialize the translator with the configuration file
+query_translator = QueryTranslator(config_path="config.yaml", language="Fr")
+query_translator.answer("Quels sont les fournisseurs qui ont des produits les plus notés par les clients ?")
+```
+
+```text
+ Le fournisseur avec le plus de produits évalués par les clients est Global Supplies (supplierid = 1, avec 1 évaluation). Il est suivi de Quality Goods Inc. (supplierid = 2, avec également 1 évaluation).
 ```
