@@ -2,6 +2,21 @@
 
 Query Translator is a tool that leverages you favorite large language models (LLMs) to translate natural language queries into SQL. It further augments the answers using the same LLM. This tool is highly beneficial for those who need to interact with databases in natural language.
 
+## Example
+
+```python
+from naturalquery.query_translator import QueryTranslator
+
+# Initialize the translator with the configuration file
+query_translator = QueryTranslator(config_path="config.yaml")
+
+# Translate and get an answer to a natural language query
+query_translator.answer("Who are the suppliers with products that have the most reviews from costumers ?")
+```
+```text
+The supplier with products that has the most reviews from customers is "Global Supplies" with a review count of 1.
+```
+
 ## Features
 
 - **Natural Language to SQL Conversion:** Translates questions posed in natural language to SQL queries.
