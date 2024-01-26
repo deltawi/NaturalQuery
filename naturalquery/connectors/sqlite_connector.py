@@ -1,6 +1,6 @@
+from ..models.schemas import Table, TableColumn
+from ..models.credentials import SQLiteCredentials
 from .base_connector import DatabaseConnector
-from models.schemas import Table, TableColumn
-from models.credentials import SQLiteCredentials
 
 class SQLiteConnector(DatabaseConnector):
     def __init__(self, credentials: SQLiteCredentials):

@@ -1,10 +1,8 @@
-# translator.py
-
-from cache.ddl_cache import DDLCache
-from query_translator.llm_interface import LLMClient
-from query_translator.language_translator import LanguageTranslator
 import hashlib
-from connectors import ConnectorFactory
+from ..connectors import ConnectorFactory
+from ..cache.ddl_cache import DDLCache
+from .llm_interface import LLMClient
+from .language_translator import LanguageTranslator
 
 SUPPORTED_LANGUAGES = {
     'En': 'English',

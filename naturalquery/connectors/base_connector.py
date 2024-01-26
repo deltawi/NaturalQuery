@@ -1,6 +1,7 @@
+from ..models.schemas import Table
+
 from abc import ABC, abstractmethod
 from typing import List
-from models.schemas import Table
 from functools import wraps
 
 

@@ -1,5 +1,5 @@
 # query_translator/language_translator.py
-from query_translator.llm_interface import LLMClient
+from .llm_interface import LLMClient
 
 class LanguageTranslator:
     def __init__(self, llm_client: LLMClient):

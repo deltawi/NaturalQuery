@@ -1,7 +1,6 @@
-
+from ..models.schemas import Table, TableColumn
+from ..models.credentials import SQLServerCredentials
 from .base_connector import DatabaseConnector
-from models.schemas import Table, TableColumn
-from models.credentials import SQLServerCredentials
 
 class SqlServerConnector(DatabaseConnector):
     def __init__(self, credentials: SQLServerCredentials):

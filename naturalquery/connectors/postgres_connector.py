@@ -1,6 +1,6 @@
+from ..models.schemas import Table, TableColumn
+from ..models.credentials import PostgresCredentials
 from .base_connector import DatabaseConnector
-from models.schemas import Table, TableColumn
-from models.credentials import PostgresCredentials
 
 class PostgresSQLConnector(DatabaseConnector):
     def __init__(self, credentials: PostgresCredentials):

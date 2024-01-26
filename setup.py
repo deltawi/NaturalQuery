@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='natural-query',
+    name='naturalquery',
     version='0.0.1',
     author='Mehdi Tantaoui',
     author_email='tantaoui.mehdi@gmail.com',
@@ -10,7 +10,7 @@ setup(
     long_description_content_type='text/markdown',
     url='https://github.com/deltawi/NaturalQuery',
     packages=find_packages(),
-    package_dir={'': 'src'},
+    #package_dir={'': '.'},
     install_requires=[
         'pandas>=2.0.0',
         'sqlalchemy<2.0.0',
