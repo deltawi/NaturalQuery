@@ -91,8 +91,8 @@ class QueryTranslator:
     def translate_question_to_sql(self, question: str):
         database_ddl = self.enrich_ddl_with_comments(self.db_connector.get_all_schemas_ddl())
         database_type = self.db_connector.db_type
-        system_prompt="You are a helpful SQL develper.\n-Reply with SQL code snippet.\n-If the question provided cannot be answered in the database return ```sql\n SELECT 'Answer is not in the database' AS Response;```"
-        prompt = f"Depending on the following SQL DDL answer the question in SQL for {database_type}: {question}\n {database_ddl}"
+        system_prompt="You are a helpful SQL develper.\n-Reply with SQL code snippet example : ```sql select * from table```.\n-If the question provided cannot be answered in the database return ```sql\n SELECT 'Answer is not in the database' AS Response;```"
+        prompt = f"Depending on the following SQL DDL:\n{database_ddl}\nAnswer the question in SQL for {database_type}: {question}\n "
         sql_query = self.llm_interface.ask_question(
             [{"role": "system", "content": system_prompt}, 
               {"role": "user", "content": prompt}]
