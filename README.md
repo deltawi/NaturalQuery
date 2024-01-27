@@ -61,6 +61,24 @@ database:
 - Currently supports `PostgreSQL`, `SQLite` and `SQLServer`.
 - Database connection details (host, port, user, password) are specified in the configuration file.
 
+**SQLite Config**
+```yaml
+database:
+  provider: sqlite
+  database: path/to/your/sqlite.db
+```
+
+**SQL Server Config**
+```yaml
+database:
+  provider: sqlserver
+  driver: <sql_server_driver>
+  server: <server_name>
+  database: <database_name>
+  username: <username>
+  password: <password>
+```
+
 ### Custom Endpoint Configuration
 - For custom LLM providers, specify the `url` and additional `model_kwargs` as needed.
 ```yaml
